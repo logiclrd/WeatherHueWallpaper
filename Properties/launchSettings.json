@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WeatherHueWallpaper": {
+      "commandName": "Project",
+      "commandLineArgs": "--run"
+    }
+  }
+}
