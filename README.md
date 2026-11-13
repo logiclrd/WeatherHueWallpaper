@@ -1,15 +1,15 @@
 # WeatherHueWallpaper
 
-A silent, per-user background wallpaper program for **Windows 10/11** using **.NET 10**. It changes only the **rightmost attached monitor** and does nothing unless **exactly three monitors are attached**.
+A silent, per-user background wallpaper program for **Windows 10/11** using **.NET 9**. It changes only the **rightmost attached monitor** and does nothing unless **exactly three monitors are attached**.
 
 ## Build and run
 
-Requires the .NET 10 SDK to build (Windows, or another OS with Windows-targeting packs restored). The produced program is a Windows GUI-subsystem executable (no console window or GUI).
+Requires the .NET 9 SDK to build (Windows, or another OS with Windows-targeting packs restored). The produced program is a Windows GUI-subsystem executable (no console window or GUI).
 
-From the directory containing this README:
+From the repository root, run `build-release.cmd` or:
 
 ```powershell
-dotnet publish .\WeatherHueWallpaper\WeatherHueWallpaper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o .\publish
+dotnet publish .\WeatherHueWallpaper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o .\publish
 ```
 
 Keep the `publish` folder in a stable location. It contains `WeatherHueWallpaper.exe` and the included demonstration `template.png`. Run `WeatherHueWallpaper.exe` to start the worker. The first successful wallpaper update requires exactly three attached monitors.
@@ -72,7 +72,7 @@ Network failures leave the last complete weather snapshot unchanged. The API req
 ### Wallpaper task (every minute)
 
 * This is an independent timer whose work runs serially on a dedicated **STA thread** for COM. A tick arriving during image processing is coalesced, not allowed to overwrite the current operation.
-* Enumerate `IDesktopWallpaper` monitors; count only monitors whose `GetMonitorRECT` returns **S_OK** (Windows also reports detached monitors with old wallpaper assignments). Require exactly three attached monitors; choose the one with the greatest rectangle `Right` coordinate.
+* Use `Screen.AllScreens` to require exactly three active displays and obtain their virtual-desktop rectangles. For each GDI display, call `EnumDisplayDevicesW` with `EDD_GET_DEVICE_INTERFACE_NAME` and match its monitor interface path to an ID from `IDesktopWallpaper.GetMonitorDevicePathAt`. Detached monitors may still appear in the COM enumeration, so do not match by index. Require an unambiguous, distinct match for every active display; otherwise skip the update. Choose the matched monitor with the greatest rectangle `Right` coordinate. This avoids `GetMonitorRECT`, which returned `0x80004005` (`E_FAIL`) on the target system.
 * Determine all wallpapers currently assigned to attached monitors. Select one of two stable temporary PNG paths, **never choosing a path currently in use by any attached monitor**. If both paths are in use, skip the tick rather than overwrite either one. Alternate slots after each successful wallpaper update.
 * Reload the original template image. Compute the **circular**, saturation/value/alpha-weighted mean hue (so hues near 0° and 360° average correctly). Rotate each pixel's HSV hue by the difference between its template average and the current transition hue, wrapping at 360°. Multiply HSV saturation by the current weather saturation factor. Multiply HSV value by the weather brightness factor, then apply `value = value ^ gamma` (thus a larger gamma darkens). Preserve alpha.
 * Choose a new target hue when the previous transition finishes. Target selection is biased with the normalized weight proportional to `1 + 3*sin(1.5*hue)^2` (hue in radians): equal two-channel mixtures (yellow/cyan/magenta at 60°/180°/300°) have **4×** the likelihood density of pure RGB primaries (red/green/blue at 0°/120°/240°). Interpolate along the shortest hue-circle arc with a half-cosine ease-in/out over 60 one-minute steps by default.
@@ -101,4 +101,6 @@ On restart, the hue transition starts from the template's average hue rather tha
 
 ## Verification status
 
-The project was authored and reviewed here; no .NET SDK or Windows desktop runtime was available in the authoring environment, so Windows compilation and the live wallpaper behavior have **not** been executed or verified. Build and test on a Windows machine with three monitors before registering for logon.
+The original project was reported to compile and run after retargeting to `net9.0-windows`. The `GetMonitorRECT` failure was reproduced on the target system; the revised monitor-path matching code has **not** yet been compiled or verified there. The implementation was reviewed without a Windows desktop or .NET SDK in the authoring environment. Validate three-monitor mapping and wallpaper updates in Visual Studio before registering for logon.
+
+If a screen cannot be matched to exactly one COM monitor, the wallpaper round is skipped. In a Debug build, mapping failures are written to the Visual Studio Output window via `Debug.WriteLine` (no UI errors are shown).
