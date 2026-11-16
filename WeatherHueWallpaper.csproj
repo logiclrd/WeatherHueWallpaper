@@ -9,6 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>WeatherHueWallpaper</AssemblyName>
     <RootNamespace>WeatherHueWallpaper</RootNamespace>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <None Update="template.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
