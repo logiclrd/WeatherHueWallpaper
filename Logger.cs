@@ -73,7 +73,11 @@ namespace WeatherHueWallpaper
 		{
 			var today = DateTime.Now;
 
-			string path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			string path = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				"WeatherHueWallpaper");
+
+			Directory.CreateDirectory(path);
 
 			return Path.Combine(path, $"WeatherHueWallpaper_{today:yyyy-MM-dd}.log");
 		}

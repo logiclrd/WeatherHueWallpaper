@@ -87,7 +87,14 @@ internal sealed class WallpaperApplication : IDisposable
 				if (Screen.AllScreens.Length == 3)
 				{
 					_logger.Log("WeatherLoop: Fetching weather from remote server");
+
 					var fresh = await _weather.FetchAsync(_config, _shutdown.Token);
+
+					_logger.Log("WeatherLoop: -> Received new weather:");
+					_logger.Log("WeatherLoop:      Brightness factor: {0}", fresh.BrightnessFactor);
+					_logger.Log("WeatherLoop:      Saturation factor: {0}", fresh.SaturationFactor);
+					_logger.Log("WeatherLoop:      Gamma: {0}", fresh.Gamma);
+
 					Volatile.Write(ref _snapshot, fresh);
 				}
 				else
@@ -202,6 +209,10 @@ internal sealed class WallpaperApplication : IDisposable
 
 		var weather = Volatile.Read(ref _snapshot);
 
+		_logger.Log("GenerateWallpaper: -> Using weather:");
+		_logger.Log("GenerateWallpaper:      Brightness factor: {0}", weather.BrightnessFactor);
+		_logger.Log("GenerateWallpaper:      Saturation factor: {0}", weather.SaturationFactor);
+		_logger.Log("GenerateWallpaper:      Gamma: {0}", weather.Gamma);
 		_logger.Log("GenerateWallpaper: Creating frame");
 
 		ImageProcessor.Apply(image, delta, weather);
